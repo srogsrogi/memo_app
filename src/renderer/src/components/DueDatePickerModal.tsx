@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Calendar as CalendarIcon, X, Check, Trash2 } from 'lucide-react'
-import { formatDateKey, parseDirectDateInput } from '../utils/dateUtils'
+import { formatDateKey } from '../utils/dateUtils'
 
 interface DueDatePickerModalProps {
   initialDueDate?: string
@@ -21,45 +21,10 @@ export default function DueDatePickerModal({
   }
 
   const [dateValue, setDateValue] = useState(getInitialDatePart())
-  const [textInput, setTextInput] = useState(initialDueDate ? getInitialDatePart() : '')
-
   const nativeDateInputRef = useRef<HTMLInputElement>(null)
 
-  // Handle direct text typing
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const val = e.target.value
-    setTextInput(val)
-
-    const parsed = parseDirectDateInput(val)
-    if (parsed) {
-      setDateValue(parsed)
-    }
-  }
-
-  // Handle calendar date change
-  const handleCalendarDateChange = (newDate: string): void => {
-    setDateValue(newDate)
-    setTextInput(newDate)
-  }
-
   const handleConfirm = (): void => {
-    if (!textInput.trim() && !dateValue) {
-      onSave(null)
-      return
-    }
-
-    const parsed = parseDirectDateInput(textInput)
-    if (parsed) {
-      onSave(parsed)
-      return
-    }
-
-    if (dateValue) {
-      onSave(dateValue)
-      return
-    }
-
-    onSave(textInput.trim() || null)
+    onSave(dateValue ? dateValue.trim() : null)
   }
 
   const handleClear = (): void => {
@@ -83,7 +48,7 @@ export default function DueDatePickerModal({
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-3 backdrop-blur-2xs animate-in fade-in duration-100">
-      <div className="w-full max-w-[270px] rounded-xl border border-stone-200 bg-white p-3.5 shadow-2xl text-stone-800 text-xs">
+      <div className="w-full max-w-[260px] rounded-xl border border-stone-200 bg-white p-3.5 shadow-2xl text-stone-800 text-xs">
         {/* Header */}
         <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-stone-100">
           <div className="flex items-center gap-1.5 font-bold text-stone-800">
@@ -99,18 +64,25 @@ export default function DueDatePickerModal({
           </button>
         </div>
 
-        {/* 1. Calendar Click Picker (달력 클릭 방식) */}
-        <div className="mb-2.5">
-          <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-            달력에서 선택
+        {/* Unified Date Input: Supports calendar button click + direct keyboard typing */}
+        <div className="mb-3.5">
+          <label className="block text-[11px] font-semibold text-stone-600 mb-1.5">
+            날짜 선택 및 입력
           </label>
           <div className="flex items-center gap-1.5">
             <input
               ref={nativeDateInputRef}
               type="date"
+              autoFocus
+              min="1900-01-01"
+              max="9999-12-31"
               value={dateValue}
-              onChange={(e) => handleCalendarDateChange(e.target.value)}
-              className="flex-1 rounded-md border border-stone-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-amber-500 cursor-pointer"
+              onChange={(e) => setDateValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleConfirm()
+                if (e.key === 'Escape') onClose()
+              }}
+              className="flex-1 rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-text text-stone-800"
             />
             <button
               type="button"
@@ -121,25 +93,6 @@ export default function DueDatePickerModal({
               <CalendarIcon className="h-4 w-4 text-amber-700" />
             </button>
           </div>
-        </div>
-
-        {/* 2. Direct Text Input (직접 입력 방식) */}
-        <div className="mb-3.5">
-          <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-            직접 입력
-          </label>
-          <input
-            type="text"
-            autoFocus
-            value={textInput}
-            onChange={handleTextChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleConfirm()
-              if (e.key === 'Escape') onClose()
-            }}
-            placeholder="예: 2026-10-15, 10/15, 오늘, 내일"
-            className="w-full rounded-md border border-stone-300 bg-stone-50 px-2 py-1.5 text-xs outline-none focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-stone-800 placeholder-stone-400"
-          />
         </div>
 
         {/* Footer Actions */}
