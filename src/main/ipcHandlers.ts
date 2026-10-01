@@ -83,6 +83,19 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     }
   )
 
+  ipcMain.handle(
+    'notes:moveTodoItem',
+    async (
+      _event,
+      params: { noteId: string; itemId: string; direction: 'up' | 'down' }
+    ) => {
+      const updated = store.moveTodoItem(params)
+      wm.broadcastNotesChanged()
+      sync.scheduleDebouncedPush()
+      return updated
+    }
+  )
+
   ipcMain.handle('notes:deleteSticky', async (_event, params: { id: string }) => {
     wm.closeStickyWindow(params.id)
     store.deleteSticky(params.id)

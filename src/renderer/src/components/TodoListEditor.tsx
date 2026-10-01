@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Plus, Undo2, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Plus, Undo2, X } from 'lucide-react'
 import { TodoItem } from '../../../shared/types'
 
 interface TodoListEditorProps {
@@ -11,6 +11,7 @@ interface TodoListEditorProps {
   onEditTodo: (itemId: string, text: string) => void
   onCompleteTodo: (itemId: string) => void
   onDeleteTodo: (itemId: string) => void
+  onMoveTodo?: (itemId: string, direction: 'up' | 'down') => void
   lastCompletedLogId: string | null
   onUndoComplete: (logId: string) => void
 }
@@ -23,6 +24,7 @@ export default function TodoListEditor({
   onEditTodo,
   onCompleteTodo,
   onDeleteTodo,
+  onMoveTodo,
   lastCompletedLogId,
   onUndoComplete
 }: TodoListEditorProps): JSX.Element {
@@ -94,7 +96,7 @@ export default function TodoListEditor({
       {/* Todo Items List (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-3 pb-6 space-y-1">
         {todos.length === 0 ? null : (
-          todos.map((item) => (
+          todos.map((item, index) => (
             <div
               key={item.id}
               className="group flex items-center justify-between rounded px-2 py-1 hover:bg-black/5 transition-colors text-xs text-stone-800"
@@ -135,15 +137,39 @@ export default function TodoListEditor({
                 )}
               </div>
 
-              {/* Delete Item (without archive) */}
-              <button
-                type="button"
-                onClick={() => onDeleteTodo(item.id)}
-                title="단순 삭제 (로그 남기지 않음)"
-                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 text-stone-500 hover:text-red-600 rounded transition-all cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              {/* Actions: Move Up / Move Down / Delete */}
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity">
+                {onMoveTodo && todos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => onMoveTodo(item.id, 'up')}
+                      title="위로 이동"
+                      className="p-0.5 text-stone-500 hover:text-stone-900 disabled:opacity-20 disabled:hover:text-stone-500 rounded transition-all cursor-pointer"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === todos.length - 1}
+                      onClick={() => onMoveTodo(item.id, 'down')}
+                      title="아래로 이동"
+                      className="p-0.5 text-stone-500 hover:text-stone-900 disabled:opacity-20 disabled:hover:text-stone-500 rounded transition-all cursor-pointer"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onDeleteTodo(item.id)}
+                  title="단순 삭제 (로그 남기지 않음)"
+                  className="p-0.5 text-stone-500 hover:text-red-600 rounded transition-all cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           ))
         )}

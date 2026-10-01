@@ -25,6 +25,8 @@ const api: ElectronAPI = {
       ipcRenderer.invoke('notes:completeTodoItem', params),
     deleteTodoItem: (params: { noteId: string; itemId: string }) =>
       ipcRenderer.invoke('notes:deleteTodoItem', params),
+    moveTodoItem: (params: { noteId: string; itemId: string; direction: 'up' | 'down' }) =>
+      ipcRenderer.invoke('notes:moveTodoItem', params),
     deleteSticky: (params: { id: string }) => ipcRenderer.invoke('notes:deleteSticky', params),
     onChanged: (callback: (payload: NotesChangedPayload) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, payload: NotesChangedPayload): void => {

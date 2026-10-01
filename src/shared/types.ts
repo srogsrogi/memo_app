@@ -103,6 +103,11 @@ export interface ElectronAPI {
       itemId: string
     }) => Promise<{ note: StickyViewModel; archivedLog: ArchivedTodoLog }>
     deleteTodoItem: (params: { noteId: string; itemId: string }) => Promise<StickyViewModel>
+    moveTodoItem: (params: {
+      noteId: string
+      itemId: string
+      direction: 'up' | 'down'
+    }) => Promise<StickyViewModel>
     deleteSticky: (params: { id: string }) => Promise<{ success: boolean }>
     onChanged: (callback: (payload: NotesChangedPayload) => void) => () => void
   }

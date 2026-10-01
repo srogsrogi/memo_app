@@ -345,6 +345,32 @@ export class LocalStore {
     return this.toViewModel(note)
   }
 
+  public moveTodoItem(params: {
+    noteId: string
+    itemId: string
+    direction: 'up' | 'down'
+  }): StickyViewModel {
+    const note = this.notes.find((n) => n.id === params.noteId)
+    if (!note) throw new Error('Note not found')
+
+    const idx = note.todos.findIndex((t) => t.id === params.itemId)
+    if (idx === -1) return this.toViewModel(note)
+
+    const targetIdx = params.direction === 'up' ? idx - 1 : idx + 1
+    if (targetIdx < 0 || targetIdx >= note.todos.length) return this.toViewModel(note)
+
+    const temp = note.todos[idx]
+    note.todos[idx] = note.todos[targetIdx]
+    note.todos[targetIdx] = temp
+
+    note.updatedAt = Date.now()
+    note.lastDeviceName = this.config.deviceName
+    this.markNoteDirty(note.id)
+    this.saveNotes()
+
+    return this.toViewModel(note)
+  }
+
   public deleteSticky(id: string): void {
     this.notes = this.notes.filter((n) => n.id !== id)
     delete this.config.stickies[id]

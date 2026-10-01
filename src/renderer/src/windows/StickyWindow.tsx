@@ -246,6 +246,9 @@ export default function StickyWindow({ noteId }: StickyWindowProps): JSX.Element
               onDeleteTodo={(itemId) => {
                 window.api.notes.deleteTodoItem({ noteId: note.id, itemId })
               }}
+              onMoveTodo={(itemId, direction) => {
+                window.api.notes.moveTodoItem({ noteId: note.id, itemId, direction })
+              }}
               lastCompletedLogId={lastCompletedLogId}
               onUndoComplete={(logId) => {
                 window.api.archive.uncomplete({ logId })
