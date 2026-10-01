@@ -14,7 +14,8 @@ import {
   NoteColor,
   NoteType,
   StickyViewModel,
-  StickyWindowState
+  StickyWindowState,
+  TodoItem
 } from '../shared/types'
 
 function atomicWriteJson(filePath: string, data: unknown): void {
@@ -536,7 +537,24 @@ export class LocalStore {
       (a, b) => b.completedAt - a.completedAt
     )
 
-    // 3. Merge active notes with conflict backup creation (FN-SYS-03)
+    // 3. Clean up pristine/empty default note if downloading existing notes from Gist
+    if (
+      this.notes.length === 1 &&
+      params.remoteNotes.length > 0 &&
+      this.notes[0].type === 'memo' &&
+      (!this.notes[0].content || this.notes[0].content.trim() === '' || this.notes[0].content === '<p></p>') &&
+      this.notes[0].todos.length === 0 &&
+      !this.config.syncMeta[this.notes[0].id]?.isDirty &&
+      !params.remoteNotes.some((rn) => rn.id === this.notes[0].id)
+    ) {
+      const emptyNoteId = this.notes[0].id
+      this.notes = []
+      delete this.config.stickies[emptyNoteId]
+      delete this.config.syncMeta[emptyNoteId]
+      deletedNoteIds.push(emptyNoteId)
+    }
+
+    // 4. Merge active notes with single-window inline conflict resolution
     for (const remoteNote of params.remoteNotes) {
       if (mergedDeletedNotes[remoteNote.id] && mergedDeletedNotes[remoteNote.id] >= remoteNote.updatedAt) {
         continue
@@ -575,38 +593,42 @@ export class LocalStore {
           isDirty: false
         }
       } else if (meta.isDirty && remoteChanged && !isSamePayload) {
+        // Single-window inline merge: do not spawn a new window!
         const localIsNewer = localNote.updatedAt >= remoteNote.updatedAt
-        const winner = localIsNewer ? localNote : remoteNote
-        const loser = localIsNewer ? remoteNote : localNote
+        const winner: Note = localIsNewer ? { ...localNote } : { ...remoteNote }
+        const loser: Note = localIsNewer ? { ...remoteNote } : { ...localNote }
+
+        if (winner.type === 'memo') {
+          const winnerHtml = winner.content || ''
+          const loserHtml = loser.content || ''
+          const loserDevice = loser.lastDeviceName || '다른 기기'
+
+          if (loserHtml && loserHtml.trim() && loserHtml !== '<p></p>') {
+            if (winnerHtml.includes('<p>') || winnerHtml.includes('<')) {
+              winner.content = `${winnerHtml}<hr><p><strong>[⚠️ ${loserDevice} 충돌 내용]</strong></p>${loserHtml}`
+            } else {
+              winner.content = `${winnerHtml}\n\n---\n**[⚠️ ${loserDevice} 충돌 내용]**\n\n${loserHtml}`
+            }
+          }
+        } else if (winner.type === 'todo') {
+          // Combine todos by ID (union merge, preserving all items from both devices)
+          const todoMap = new Map<string, TodoItem>()
+          for (const t of loser.todos || []) {
+            todoMap.set(t.id, t)
+          }
+          for (const t of winner.todos || []) {
+            todoMap.set(t.id, t)
+          }
+          winner.todos = Array.from(todoMap.values())
+        }
+
+        winner.updatedAt = Date.now()
+        winner.lastDeviceName = this.config.deviceName
 
         this.notes[localIdx] = winner
         this.config.syncMeta[winner.id] = {
           baseUpdatedAt: remoteNote.updatedAt,
-          isDirty: localIsNewer
-        }
-
-        if (this.notes.length < MAX_STICKIES) {
-          const backupId = randomUUID()
-          const backupNote: Note = {
-            ...loser,
-            id: backupId,
-            content:
-              loser.type === 'memo'
-                ? `# [충돌 백업 - ${loser.lastDeviceName}]\n\n${loser.content}`
-                : '',
-            groupTitle:
-              loser.type === 'todo'
-                ? `[충돌 백업 - ${loser.lastDeviceName}] ${loser.groupTitle || '할 일'}`
-                : '',
-            updatedAt: Date.now()
-          }
-          this.notes.push(backupNote)
-          this.getWindowState(backupId)
-          this.config.syncMeta[backupId] = {
-            baseUpdatedAt: 0,
-            isDirty: true
-          }
-          createdNoteIds.push(backupId)
+          isDirty: true
         }
       }
     }
