@@ -68,6 +68,49 @@ export class WindowManager {
     return bounds
   }
 
+  private calculateSnapPosition(
+    noteId: string,
+    currentX: number,
+    currentY: number,
+    width: number,
+    height: number
+  ): { x: number; y: number } {
+    const SNAP_THRESHOLD = 14
+    let snappedX = currentX
+    let snappedY = currentY
+
+    // 1. Snap to screen edges
+    const displays = screen.getAllDisplays()
+    for (const d of displays) {
+      const { x, y, width: screenW, height: screenH } = d.workArea
+      if (Math.abs(snappedX - x) <= SNAP_THRESHOLD) snappedX = x
+      if (Math.abs(snappedX + width - (x + screenW)) <= SNAP_THRESHOLD) snappedX = x + screenW - width
+      if (Math.abs(snappedY - y) <= SNAP_THRESHOLD) snappedY = y
+      if (Math.abs(snappedY + height - (y + screenH)) <= SNAP_THRESHOLD) snappedY = y + screenH - height
+    }
+
+    // 2. Snap to other open sticky windows
+    for (const [otherId, otherWin] of this.stickyWindows.entries()) {
+      if (otherId === noteId || otherWin.isDestroyed() || !otherWin.isVisible()) continue
+      const [ox, oy] = otherWin.getPosition()
+      const [ow, oh] = otherWin.getSize()
+
+      // Horizontal magnetic snaps
+      if (Math.abs(snappedX + width - ox) <= SNAP_THRESHOLD) snappedX = ox - width
+      if (Math.abs(snappedX - (ox + ow)) <= SNAP_THRESHOLD) snappedX = ox + ow
+      if (Math.abs(snappedX - ox) <= SNAP_THRESHOLD) snappedX = ox
+      if (Math.abs(snappedX + width - (ox + ow)) <= SNAP_THRESHOLD) snappedX = ox + ow - width
+
+      // Vertical magnetic snaps
+      if (Math.abs(snappedY + height - oy) <= SNAP_THRESHOLD) snappedY = oy - height
+      if (Math.abs(snappedY - (oy + oh)) <= SNAP_THRESHOLD) snappedY = oy + oh
+      if (Math.abs(snappedY - oy) <= SNAP_THRESHOLD) snappedY = oy
+      if (Math.abs(snappedY + height - (oy + oh)) <= SNAP_THRESHOLD) snappedY = oy + oh - height
+    }
+
+    return { x: snappedX, y: snappedY }
+  }
+
   public openSticky(noteId: string): BrowserWindow {
     const existing = this.stickyWindows.get(noteId)
     if (existing && !existing.isDestroyed()) {
@@ -113,30 +156,36 @@ export class WindowManager {
 
     this.stickyWindows.set(noteId, win)
 
-    const saveCurrentBounds = (): void => {
+    const handleBoundsChange = (): void => {
       if (win.isDestroyed()) return
-      const [currentX, currentY] = win.getPosition()
-      const [currentW, currentH] = win.getSize()
-      const current = this.store.getWindowState(noteId)
-
       const timer = this.boundsDebounceTimers.get(noteId)
       if (timer) clearTimeout(timer)
 
       this.boundsDebounceTimers.set(
         noteId,
         setTimeout(() => {
+          if (win.isDestroyed()) return
+          const [currentX, currentY] = win.getPosition()
+          const [currentW, currentH] = win.getSize()
+          const current = this.store.getWindowState(noteId)
+
+          const snapped = this.calculateSnapPosition(noteId, currentX, currentY, currentW, currentH)
+          if (snapped.x !== currentX || snapped.y !== currentY) {
+            win.setPosition(snapped.x, snapped.y)
+          }
+
           this.store.setWindowState(noteId, {
-            x: currentX,
-            y: currentY,
+            x: snapped.x,
+            y: snapped.y,
             width: currentW,
             height: current.isCollapsed ? current.height : currentH
           })
-        }, 300)
+        }, 250)
       )
     }
 
-    win.on('move', saveCurrentBounds)
-    win.on('resize', saveCurrentBounds)
+    win.on('move', handleBoundsChange)
+    win.on('resize', handleBoundsChange)
 
     win.on('closed', () => {
       this.stickyWindows.delete(noteId)

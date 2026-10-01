@@ -61,6 +61,11 @@ export default function TodoListEditor({
           type="text"
           value={groupTitle}
           onChange={(e) => onUpdateGroupTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === 'Escape') {
+              e.currentTarget.blur()
+            }
+          }}
           placeholder="제목"
           className="w-full bg-transparent text-sm font-semibold text-stone-800 placeholder-stone-400 focus:outline-none"
         />
@@ -74,6 +79,12 @@ export default function TodoListEditor({
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setInputText('')
+                e.currentTarget.blur()
+              }
+            }}
             placeholder="할 일 추가..."
             className="w-full bg-transparent text-xs text-stone-800 placeholder-stone-400 focus:outline-none"
           />

@@ -13,6 +13,16 @@ export default function StickyWindow({ noteId }: StickyWindowProps): JSX.Element
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
   const [deleteCountdown, setDeleteCountdown] = useState<number | null>(null)
   const [lastCompletedLogId, setLastCompletedLogId] = useState<string | null>(null)
+  const [limitToast, setLimitToast] = useState<string | null>(null)
+
+  // Max limit toast auto-dismiss
+  useEffect(() => {
+    if (!limitToast) return
+    const timer = setTimeout(() => {
+      setLimitToast(null)
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [limitToast])
 
   // Fetch initial note
   useEffect(() => {
@@ -67,13 +77,17 @@ export default function StickyWindow({ noteId }: StickyWindowProps): JSX.Element
     window.api.window.toggleAlwaysOnTop({ noteId })
   }
 
-  const handleCreateSameType = (): void => {
+  const handleCreateSameType = async (): Promise<void> => {
     if (!note) return
-    window.api.notes.create({
-      type: note.type,
-      color: note.color,
-      fromNoteId: note.id
-    })
+    try {
+      await window.api.notes.create({
+        type: note.type,
+        color: note.color,
+        fromNoteId: note.id
+      })
+    } catch {
+      setLimitToast('스티커는 최대 10개까지 생성할 수 있습니다.')
+    }
   }
 
   const handleColorChange = (color: NoteColor): void => {
@@ -254,6 +268,13 @@ export default function StickyWindow({ noteId }: StickyWindowProps): JSX.Element
                 <Undo2 className="h-3.5 w-3.5 text-emerald-400" />
                 실행 취소
               </button>
+            </div>
+          )}
+
+          {/* Max Limit Toast Notification */}
+          {limitToast && (
+            <div className="absolute top-2 left-3 right-3 z-50 flex items-center justify-center rounded bg-stone-900/90 px-3 py-1.5 text-[11px] text-white shadow-lg backdrop-blur-xs animate-in fade-in duration-150">
+              <span>{limitToast}</span>
             </div>
           )}
         </div>
