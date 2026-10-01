@@ -71,6 +71,20 @@ export class LocalStore {
       syncMeta: {},
       isArchiveDirty: false
     })
+
+    // Ensure active notes are never trapped in deletedNoteIds
+    let archiveModified = false
+    for (const note of this.notes) {
+      if (this.archivePayload.deletedNoteIds && this.archivePayload.deletedNoteIds[note.id]) {
+        delete this.archivePayload.deletedNoteIds[note.id]
+        archiveModified = true
+      }
+    }
+    if (archiveModified) {
+      this.config.isArchiveDirty = true
+      this.saveArchive()
+    }
+
     this.saveConfig()
   }
 
@@ -507,11 +521,18 @@ export class LocalStore {
     // Remove locally any notes that were deleted remotely
     for (const [delId, deletedAt] of Object.entries(mergedDeletedNotes)) {
       const localNote = this.notes.find((n) => n.id === delId)
-      if (localNote && localNote.updatedAt <= deletedAt) {
-        this.notes = this.notes.filter((n) => n.id !== delId)
-        delete this.config.stickies[delId]
-        delete this.config.syncMeta[delId]
-        deletedNoteIds.push(delId)
+      if (localNote) {
+        if (localNote.updatedAt <= deletedAt) {
+          this.notes = this.notes.filter((n) => n.id !== delId)
+          delete this.config.stickies[delId]
+          delete this.config.syncMeta[delId]
+          deletedNoteIds.push(delId)
+        } else {
+          // Local note was updated AFTER remote deletion: it is resurrected / active!
+          delete mergedDeletedNotes[delId]
+          delete this.archivePayload.deletedNoteIds[delId]
+          this.config.isArchiveDirty = true
+        }
       }
     }
 
@@ -556,8 +577,15 @@ export class LocalStore {
 
     // 4. Merge active notes with single-window inline conflict resolution
     for (const remoteNote of params.remoteNotes) {
-      if (mergedDeletedNotes[remoteNote.id] && mergedDeletedNotes[remoteNote.id] >= remoteNote.updatedAt) {
-        continue
+      if (mergedDeletedNotes[remoteNote.id]) {
+        if (mergedDeletedNotes[remoteNote.id] >= remoteNote.updatedAt) {
+          continue
+        } else {
+          // Remote note was updated AFTER deletion: resurrect it!
+          delete mergedDeletedNotes[remoteNote.id]
+          delete this.archivePayload.deletedNoteIds[remoteNote.id]
+          this.config.isArchiveDirty = true
+        }
       }
 
       const localIdx = this.notes.findIndex((n) => n.id === remoteNote.id)
@@ -630,6 +658,14 @@ export class LocalStore {
           baseUpdatedAt: remoteNote.updatedAt,
           isDirty: true
         }
+      }
+    }
+
+    // Ensure all active notes are NEVER trapped in deletedNoteIds
+    for (const note of this.notes) {
+      if (this.archivePayload.deletedNoteIds && this.archivePayload.deletedNoteIds[note.id]) {
+        delete this.archivePayload.deletedNoteIds[note.id]
+        this.config.isArchiveDirty = true
       }
     }
 

@@ -281,19 +281,32 @@ export class GistSyncEngine {
       const config = this.store.getConfig()
       let hasChangesToPush = false
 
-      // Check dirty notes
+      const activeNoteIds = new Set(this.store.getRawNotes().map((n) => n.id))
+
+      // Ensure active notes are never in deletedNoteIds
+      for (const activeId of activeNoteIds) {
+        if (this.store.getArchivePayload().deletedNoteIds && this.store.getArchivePayload().deletedNoteIds[activeId]) {
+          delete this.store.getArchivePayload().deletedNoteIds[activeId]
+          this.store.getConfig().isArchiveDirty = true
+        }
+      }
+
+      // Check dirty notes or notes missing from remote Gist
       for (const note of this.store.getRawNotes()) {
         const meta = config.syncMeta[note.id]
-        if (!meta || meta.isDirty) {
-          filesPatch[`note-${note.id}.json`] = {
+        const fileKey = `note-${note.id}.json`
+        const isMissingFromRemote = this.knownRemoteFiles.size > 0 && !this.knownRemoteFiles.has(fileKey)
+        if (!meta || meta.isDirty || isMissingFromRemote) {
+          filesPatch[fileKey] = {
             content: JSON.stringify(note, null, 2)
           }
           hasChangesToPush = true
         }
       }
 
-      // Check deleted notes - ONLY delete if the file actually exists in remote Gist!
+      // Check deleted notes - ONLY delete if not active locally and actually present in remote Gist!
       for (const deletedId of Object.keys(this.store.getArchivePayload().deletedNoteIds || {})) {
+        if (activeNoteIds.has(deletedId)) continue
         const fileKey = `note-${deletedId}.json`
         if (this.knownRemoteFiles.has(fileKey)) {
           filesPatch[fileKey] = null
