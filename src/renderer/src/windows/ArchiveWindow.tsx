@@ -14,20 +14,27 @@ import {
   AlertCircle,
   Clock,
   Download,
-  Upload
+  Upload,
+  CheckSquare,
+  FileText,
+  Layers,
+  Pin,
+  Plus
 } from 'lucide-react'
 import {
   ArchivedTodoLog,
   COLOR_THEMES,
   NoteColor,
+  StickyViewModel,
   SyncConfigInfo,
   SyncStatus
 } from '../../../shared/types'
 
-type ActiveTab = 'archive' | 'sync'
+type ActiveTab = 'stickies' | 'archive' | 'sync'
 
 export default function ArchiveWindow(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('archive')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('stickies')
+  const [stickies, setStickies] = useState<StickyViewModel[]>([])
   const [logs, setLogs] = useState<ArchivedTodoLog[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [syncConfig, setSyncConfig] = useState<SyncConfigInfo | null>(null)
@@ -40,6 +47,9 @@ export default function ArchiveWindow(): JSX.Element {
 
   // Load initial data
   useEffect(() => {
+    window.api.notes.getAllStickies().then((data) => {
+      setStickies(data)
+    })
     window.api.archive.getAll().then((data) => {
       setLogs(data)
     })
@@ -60,6 +70,7 @@ export default function ArchiveWindow(): JSX.Element {
   // Listen for real-time notes/archive updates
   useEffect(() => {
     const unsubNotes = window.api.notes.onChanged((payload) => {
+      setStickies(payload.stickies)
       setLogs(payload.archivedLogs)
     })
     const unsubSync = window.api.sync.onStatusChanged((payload) => {
@@ -208,6 +219,42 @@ export default function ArchiveWindow(): JSX.Element {
     })
   }
 
+  // Filtered active stickies
+  const filteredStickies = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return stickies
+    return stickies.filter((s) => {
+      if (s.type === 'memo') {
+        const text = s.content.replace(/<[^>]*>/g, '').toLowerCase()
+        return text.includes(q)
+      } else {
+        const groupMatch = (s.groupTitle || '할 일').toLowerCase().includes(q)
+        const todoMatch = s.todos.some((t) => t.text.toLowerCase().includes(q))
+        return groupMatch || todoMatch
+      }
+    })
+  }, [stickies, searchQuery])
+
+  const handleFocusSticky = (noteId: string): void => {
+    window.api.window.focusSticky({ noteId })
+  }
+
+  const handleCreateMemo = async (): Promise<void> => {
+    try {
+      await window.api.notes.create({ type: 'memo', color: 'yellow' })
+    } catch {
+      setActionFeedback({ type: 'error', message: '스티커는 최대 10개까지 열 수 있습니다.' })
+    }
+  }
+
+  const handleCreateTodo = async (): Promise<void> => {
+    try {
+      await window.api.notes.create({ type: 'todo', color: 'mint' })
+    } catch {
+      setActionFeedback({ type: 'error', message: '스티커는 최대 10개까지 열 수 있습니다.' })
+    }
+  }
+
   // Filtered & grouped logs
   const filteredLogs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
@@ -318,6 +365,23 @@ export default function ArchiveWindow(): JSX.Element {
       <div className="flex border-b border-stone-200 bg-stone-100 px-3 pt-2 text-xs">
         <button
           type="button"
+          onClick={() => setActiveTab('stickies')}
+          className={`flex items-center gap-1.5 border-b-2 px-3 pb-2 font-medium transition-colors cursor-pointer ${
+            activeTab === 'stickies'
+              ? 'border-amber-500 text-amber-800'
+              : 'border-transparent text-stone-500 hover:text-stone-800'
+          }`}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          활성 스티커
+          {stickies.length > 0 && (
+            <span className="ml-1 rounded-full bg-stone-200 px-1.5 py-0.2 text-[10px] text-stone-700">
+              {stickies.length}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('archive')}
           className={`flex items-center gap-1.5 border-b-2 px-3 pb-2 font-medium transition-colors cursor-pointer ${
             activeTab === 'archive'
@@ -370,7 +434,123 @@ export default function ArchiveWindow(): JSX.Element {
 
       {/* Main Tab Content */}
       <div className="flex-1 overflow-hidden p-3">
-        {activeTab === 'archive' ? (
+        {activeTab === 'stickies' ? (
+          <div className="flex h-full flex-col">
+            {/* Search Bar & Quick Add */}
+            <div className="mb-3 flex items-center gap-2 shrink-0">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-stone-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="모든 스티커 내용 및 할 일 검색..."
+                  className="w-full rounded-md border border-stone-300 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Add Buttons */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleCreateMemo}
+                  title="새 메모 생성"
+                  className="flex items-center gap-1 rounded bg-amber-500/15 hover:bg-amber-500/25 px-2 py-1.5 text-[11px] font-semibold text-amber-900 transition-colors cursor-pointer"
+                >
+                  <Plus className="h-3 w-3" />
+                  메모
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateTodo}
+                  title="새 할 일 생성"
+                  className="flex items-center gap-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 px-2 py-1.5 text-[11px] font-semibold text-emerald-900 transition-colors cursor-pointer"
+                >
+                  <Plus className="h-3 w-3" />
+                  할 일
+                </button>
+              </div>
+            </div>
+
+            {/* Stickies List */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-1.5">
+              {filteredStickies.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center text-stone-400">
+                  <Layers className="mb-2 h-9 w-9 text-stone-300" />
+                  <p className="text-xs">
+                    {searchQuery ? '일치하는 스티커가 없습니다.' : '열려 있는 스티커가 없습니다.'}
+                  </p>
+                </div>
+              ) : (
+                filteredStickies.map((s) => {
+                  const theme = COLOR_THEMES[s.color as NoteColor] || COLOR_THEMES.yellow
+                  const memoText = s.type === 'memo' ? s.content.replace(/<[^>]*>/g, '').trim() : ''
+                  const title =
+                    s.type === 'memo'
+                      ? memoText.split('\n').find((l) => l.trim().length > 0) || '메모'
+                      : s.groupTitle || '할 일'
+
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => handleFocusSticky(s.id)}
+                      className="group flex items-center justify-between rounded-lg border border-stone-200/80 bg-white p-2.5 text-xs shadow-xs hover:border-amber-300 hover:bg-amber-50/30 transition-all cursor-pointer"
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                        <span
+                          style={{ backgroundColor: theme.dot }}
+                          className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                          title={`테마: ${theme.label}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            {s.type === 'memo' ? (
+                              <FileText className="h-3 w-3 text-stone-500 shrink-0" />
+                            ) : (
+                              <CheckSquare className="h-3 w-3 text-stone-500 shrink-0" />
+                            )}
+                            <span className="font-semibold text-stone-800 truncate">{title}</span>
+                          </div>
+
+                          <div className="mt-1 text-[11px] text-stone-500 truncate">
+                            {s.type === 'memo' ? (
+                              memoText || '빈 메모'
+                            ) : (
+                              <span>
+                                미완료 {s.todos.length}건
+                                {s.todos.length > 0 && ` (${s.todos.map((t) => t.text).join(', ')})`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                        {s.alwaysOnTop && (
+                          <span title="항상 위 고정됨">
+                            <Pin className="h-3 w-3 text-amber-700 fill-current" />
+                          </span>
+                        )}
+                        <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-600 font-medium opacity-70 group-hover:opacity-100 group-hover:bg-amber-100 group-hover:text-amber-800 transition-colors">
+                          창으로 이동
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        ) : activeTab === 'archive' ? (
           <div className="flex h-full flex-col">
             {/* Search Bar */}
             <div className="relative mb-3 shrink-0">

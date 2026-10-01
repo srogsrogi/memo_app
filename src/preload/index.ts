@@ -49,7 +49,8 @@ const api: ElectronAPI = {
       ipcRenderer.invoke('window:toggleAlwaysOnTop', params),
     toggleCollapse: (params: { noteId: string }) =>
       ipcRenderer.invoke('window:toggleCollapse', params),
-    toggleHideAll: () => ipcRenderer.invoke('window:toggleHideAll')
+    toggleHideAll: () => ipcRenderer.invoke('window:toggleHideAll'),
+    focusSticky: (params: { noteId: string }) => ipcRenderer.invoke('window:focusSticky', params)
   },
   sync: {
     getConfig: () => ipcRenderer.invoke('sync:getConfig'),

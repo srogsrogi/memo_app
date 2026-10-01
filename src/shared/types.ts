@@ -121,6 +121,7 @@ export interface ElectronAPI {
     toggleAlwaysOnTop: (params: { noteId: string }) => Promise<{ alwaysOnTop: boolean }>
     toggleCollapse: (params: { noteId: string }) => Promise<{ isCollapsed: boolean }>
     toggleHideAll: () => Promise<{ isHidden: boolean }>
+    focusSticky: (params: { noteId: string }) => Promise<{ success: boolean }>
   }
   sync: {
     getConfig: () => Promise<SyncConfigInfo>

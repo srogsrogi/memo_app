@@ -270,6 +270,15 @@ export class WindowManager {
     return this.areStickiesHidden
   }
 
+  public focusSticky(noteId: string): void {
+    const win = this.stickyWindows.get(noteId)
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+  }
+
   public openArchiveWindow(): BrowserWindow {
     if (this.archiveWindow && !this.archiveWindow.isDestroyed()) {
       if (this.archiveWindow.isMinimized()) this.archiveWindow.restore()

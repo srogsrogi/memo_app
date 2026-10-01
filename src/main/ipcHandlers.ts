@@ -150,6 +150,11 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     return { isHidden }
   })
 
+  ipcMain.handle('window:focusSticky', async (_event, params: { noteId: string }) => {
+    wm.focusSticky(params.noteId)
+    return { success: true }
+  })
+
   // --- Sync Control ---
   ipcMain.handle('sync:getConfig', async (): Promise<SyncConfigInfo> => {
     const token = store.getGithubToken()
