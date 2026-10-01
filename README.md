@@ -41,3 +41,12 @@
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide React
 - **Markdown Editor**: Tiptap (`@tiptap/react`, `@tiptap/starter-kit`)
 - **Packaging**: `electron-builder` (Windows `NSIS .exe` / macOS `.dmg`)
+
+---
+
+## 📌 향후 과제 (Roadmap TODO)
+
+- [ ] **GitHub Releases 연동 인앱 자동 업데이트 (`electron-updater`)**:
+  - 태그 푸시 시 GitHub Actions 크로스플랫폼 빌드 자동화
+  - 앱 실행 시 신규 버전 백그라운드 체크 및 원클릭 재시작 업데이트 지원
+

@@ -113,3 +113,16 @@ memo_app/
    - 서로 다른 스티커는 `note-{uuid}.json`으로 파일이 분리되어 있어 충돌이 발생하지 않습니다.
    - 양쪽 기기가 모두 오프라인인 상태에서 **동일한 스티커 하나**를 동시에 수정한 경우, `updatedAt`이 최신인 본문을 원본에 채택하고 이전 수정본은 **`[충돌 백업 - 기기명]` 새 스티커로 자동 복제**하여 데이터 유실을 원천 방지합니다.
    - 완료 아카이브(`todo-archive.json`)는 고유 ID 기준 합집합(Union)으로 병합되어 오프라인 완료 내역이 유실 없이 합쳐집니다.
+
+---
+
+## 5. 배포 및 업데이트 파이프라인 (Roadmap TODO)
+
+- **현재 배포 방식**:
+  - `npm run build:win` (Windows NSIS `.exe`) 및 `npm run build:mac` (macOS `.dmg`) 로컬 빌드
+  - 새 버전 반영 시 기존 설치본 위에 인스톨러 덮어쓰기 실행 (사용자 데이터 `%APPDATA%\hybrid-sticky-memo\`는 100% 보존)
+- **향후 자동화 계획 (TODO)**:
+  - `electron-updater` 패키지 연동
+  - GitHub Actions 기반 태그 푸시 자동 릴리즈(Release CI/CD) 파이프라인 구성
+  - 앱 실행 중 신규 버전 자동 감지, 백그라운드 다운로드 및 재시작 시 자동 패치 지원
+
