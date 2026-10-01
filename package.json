@@ -11,7 +11,7 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac"
+    "build:mac": "npm run build && electron-builder --mac && rsync -a --delete release/mac*/StickyMemo.app/ /Applications/StickyMemo.app/ && rm -rf release/mac*/StickyMemo.app"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
