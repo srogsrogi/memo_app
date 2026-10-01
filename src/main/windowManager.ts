@@ -26,6 +26,10 @@ export class WindowManager {
     return path.join(__dirname, '../preload/index.js')
   }
 
+  private getAppIconPath(): string {
+    return path.join(__dirname, '../../resources/icon.png')
+  }
+
   private loadWindowUrl(win: BrowserWindow, queryParams: Record<string, string>): void {
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
       const url = new URL(process.env['ELECTRON_RENDERER_URL'])
@@ -143,6 +147,7 @@ export class WindowManager {
       skipTaskbar: false,
       resizable: !bounds.isCollapsed,
       alwaysOnTop: bounds.alwaysOnTop,
+      icon: this.getAppIconPath(),
       webPreferences: {
         preload: this.getPreloadPath(),
         sandbox: false,
@@ -291,6 +296,7 @@ export class WindowManager {
       hasShadow: true,
       skipTaskbar: false,
       alwaysOnTop: true,
+      icon: this.getAppIconPath(),
       webPreferences: {
         preload: this.getPreloadPath(),
         sandbox: false,

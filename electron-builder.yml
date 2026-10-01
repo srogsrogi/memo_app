@@ -1,7 +1,7 @@
 appId: com.srogsrogi.hybridmemo
 productName: StickyMemo
 directories:
-  buildResources: build
+  buildResources: resources
   output: release
 files:
   - '!**/.vscode/*'
@@ -13,6 +13,7 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 win:
   executableName: StickyMemo
+  icon: resources/icon.ico
   target:
     - target: nsis
       arch:
