@@ -47,6 +47,11 @@ if (!gotTheLock) {
     wm.openArchiveWindow()
   })
 
+  app.on('activate', () => {
+    // On macOS, re-open archive window when dock icon is clicked
+    wm.openArchiveWindow()
+  })
+
   app.on('will-quit', () => {
     if (tray) tray.destroy()
     if (sync) sync.destroy()

@@ -87,9 +87,11 @@ export class TrayManager {
   public updateContextMenu(): void {
     if (!this.tray) return
 
+    const isMac = process.platform === 'darwin'
+
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: '📝 새 메모 스티커 (Ctrl+Shift+N)',
+        label: isMac ? '📝 새 메모 스티커 (Cmd+Shift+N)' : '📝 새 메모 스티커 (Ctrl+Shift+N)',
         click: () => {
           try {
             const note = this.store.createSticky({ type: 'memo', color: 'yellow' })
@@ -101,7 +103,7 @@ export class TrayManager {
         }
       },
       {
-        label: '☑️ 새 할 일 스티커 (Ctrl+Shift+T)',
+        label: isMac ? '☑️ 새 할 일 스티커 (Cmd+Shift+T)' : '☑️ 새 할 일 스티커 (Ctrl+Shift+T)',
         click: () => {
           try {
             const note = this.store.createSticky({ type: 'todo', color: 'mint' })
@@ -132,7 +134,7 @@ export class TrayManager {
         }
       },
       {
-        label: '🚀 Windows 시작 시 자동 실행',
+        label: isMac ? '🚀 macOS 로그인 시 자동 실행' : '🚀 Windows 시작 시 자동 실행',
         type: 'checkbox',
         checked: app.getLoginItemSettings().openAtLogin,
         click: (menuItem) => {

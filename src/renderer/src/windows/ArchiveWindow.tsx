@@ -45,6 +45,10 @@ export default function ArchiveWindow(): JSX.Element {
 
   const [autoLaunchEnabled, setAutoLaunchEnabled] = useState(false)
 
+  const isMac = useMemo(() => {
+    return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent)
+  }, [])
+
   // Load initial data
   useEffect(() => {
     window.api.notes.getAllStickies().then((data) => {
@@ -803,9 +807,13 @@ export default function ArchiveWindow(): JSX.Element {
             <div className="rounded-lg border border-stone-200 bg-white p-3.5 shadow-xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-stone-800 text-xs">Windows 시작 시 자동 실행</span>
+                  <span className="font-bold text-stone-800 text-xs">
+                    {isMac ? 'macOS 로그인 시 자동 실행' : 'Windows 시작 시 자동 실행'}
+                  </span>
                   <p className="text-[11px] text-stone-500 mt-0.5">
-                    컴퓨터 부팅 시 바탕화면에 스티커 메모를 자동으로 띄웁니다.
+                    {isMac
+                      ? '맥 부팅 및 로그인 시 바탕화면에 스티커 메모를 자동으로 띄웁니다.'
+                      : '컴퓨터 부팅 시 바탕화면에 스티커 메모를 자동으로 띄웁니다.'}
                   </p>
                 </div>
                 <button
@@ -828,10 +836,22 @@ export default function ArchiveWindow(): JSX.Element {
             <div className="rounded-lg border border-stone-200 bg-stone-100/60 p-3 text-[11px] text-stone-600 space-y-1 leading-relaxed">
               <p className="font-semibold text-stone-700">💡 단축키 및 사용 팁</p>
               <ul className="list-disc list-inside space-y-0.5 text-stone-500">
-                <li><kbd className="rounded bg-white px-1 py-0.5 border border-stone-300 text-[10px]">Ctrl+Shift+N</kbd>: 새 메모 스티커 생성</li>
-                <li><kbd className="rounded bg-white px-1 py-0.5 border border-stone-300 text-[10px]">Ctrl+Shift+T</kbd>: 새 할 일 스티커 생성</li>
+                <li>
+                  <kbd className="rounded bg-white px-1 py-0.5 border border-stone-300 text-[10px]">
+                    {isMac ? 'Cmd+Shift+N' : 'Ctrl+Shift+N'}
+                  </kbd>
+                  : 새 메모 스티커 생성
+                </li>
+                <li>
+                  <kbd className="rounded bg-white px-1 py-0.5 border border-stone-300 text-[10px]">
+                    {isMac ? 'Cmd+Shift+T' : 'Ctrl+Shift+T'}
+                  </kbd>
+                  : 새 할 일 스티커 생성
+                </li>
                 <li>스티커 상단 헤더 더블클릭: 38px 얇은 바로 접기/펴기</li>
-                <li>트레이 아이콘 좌클릭: 완료 아카이브 & 설정 열기</li>
+                <li>
+                  {isMac ? '메뉴바 포스트잇 아이콘 클릭: 완료 아카이브 & 설정 열기' : '트레이 아이콘 좌클릭: 완료 아카이브 & 설정 열기'}
+                </li>
               </ul>
             </div>
           </div>
