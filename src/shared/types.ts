@@ -5,6 +5,7 @@ export interface TodoItem {
   id: string
   text: string
   createdAt: number
+  dueDate?: string
 }
 
 export interface Note {
@@ -28,6 +29,7 @@ export interface ArchivedTodoLog {
   createdAt: number
   completedAt: number
   completedByDevice: string
+  dueDate?: string
 }
 
 export interface GistArchivePayload {
@@ -96,8 +98,13 @@ export interface ElectronAPI {
     create: (params: { type: NoteType; color?: NoteColor; fromNoteId?: string }) => Promise<StickyViewModel>
     updateMemo: (params: { id: string; content?: string; color?: NoteColor }) => Promise<StickyViewModel>
     updateTodoGroup: (params: { id: string; groupTitle?: string; color?: NoteColor }) => Promise<StickyViewModel>
-    addTodoItem: (params: { noteId: string; text: string }) => Promise<StickyViewModel>
-    editTodoItem: (params: { noteId: string; itemId: string; text: string }) => Promise<StickyViewModel>
+    addTodoItem: (params: { noteId: string; text: string; dueDate?: string }) => Promise<StickyViewModel>
+    editTodoItem: (params: {
+      noteId: string
+      itemId: string
+      text?: string
+      dueDate?: string | null
+    }) => Promise<StickyViewModel>
     completeTodoItem: (params: {
       noteId: string
       itemId: string

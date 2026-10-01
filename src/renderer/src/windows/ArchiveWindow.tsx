@@ -29,6 +29,7 @@ import {
   SyncConfigInfo,
   SyncStatus
 } from '../../../shared/types'
+import { formatDueDate } from '../utils/dateUtils'
 
 type ActiveTab = 'stickies' | 'archive' | 'sync'
 
@@ -619,6 +620,14 @@ export default function ArchiveWindow(): JSX.Element {
                                     </span>
                                     <span>•</span>
                                     <span>{formatTime(log.completedAt)}</span>
+                                    {log.dueDate && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-amber-700 font-medium">
+                                          📅 {formatDueDate(log.dueDate)?.label || log.dueDate}
+                                        </span>
+                                      </>
+                                    )}
                                     {log.completedByDevice && (
                                       <>
                                         <span>•</span>

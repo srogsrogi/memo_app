@@ -46,16 +46,22 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     }
   )
 
-  ipcMain.handle('notes:addTodoItem', async (_event, params: { noteId: string; text: string }) => {
-    const updated = store.addTodoItem(params)
-    wm.broadcastNotesChanged()
-    sync.scheduleDebouncedPush()
-    return updated
-  })
+  ipcMain.handle(
+    'notes:addTodoItem',
+    async (_event, params: { noteId: string; text: string; dueDate?: string }) => {
+      const updated = store.addTodoItem(params)
+      wm.broadcastNotesChanged()
+      sync.scheduleDebouncedPush()
+      return updated
+    }
+  )
 
   ipcMain.handle(
     'notes:editTodoItem',
-    async (_event, params: { noteId: string; itemId: string; text: string }) => {
+    async (
+      _event,
+      params: { noteId: string; itemId: string; text?: string; dueDate?: string | null }
+    ) => {
       const updated = store.editTodoItem(params)
       wm.broadcastNotesChanged()
       sync.scheduleDebouncedPush()

@@ -258,7 +258,7 @@ export class LocalStore {
     return this.toViewModel(note)
   }
 
-  public addTodoItem(params: { noteId: string; text: string }): StickyViewModel {
+  public addTodoItem(params: { noteId: string; text: string; dueDate?: string }): StickyViewModel {
     const trimmed = params.text.trim()
     const note = this.notes.find((n) => n.id === params.noteId)
     if (!note) throw new Error('Note not found')
@@ -267,7 +267,8 @@ export class LocalStore {
     note.todos.push({
       id: randomUUID(),
       text: trimmed,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      dueDate: params.dueDate ? params.dueDate.trim() : undefined
     })
     note.updatedAt = Date.now()
     note.lastDeviceName = this.config.deviceName
@@ -277,13 +278,25 @@ export class LocalStore {
     return this.toViewModel(note)
   }
 
-  public editTodoItem(params: { noteId: string; itemId: string; text: string }): StickyViewModel {
+  public editTodoItem(params: {
+    noteId: string
+    itemId: string
+    text?: string
+    dueDate?: string | null
+  }): StickyViewModel {
     const note = this.notes.find((n) => n.id === params.noteId)
     if (!note) throw new Error('Note not found')
 
     const item = note.todos.find((t) => t.id === params.itemId)
     if (item) {
-      item.text = params.text
+      if (params.text !== undefined) item.text = params.text
+      if (params.dueDate !== undefined) {
+        if (params.dueDate === null || params.dueDate === '') {
+          delete item.dueDate
+        } else {
+          item.dueDate = params.dueDate.trim()
+        }
+      }
       note.updatedAt = Date.now()
       note.lastDeviceName = this.config.deviceName
       this.markNoteDirty(note.id)
@@ -315,7 +328,8 @@ export class LocalStore {
       color: note.color,
       createdAt: removed.createdAt,
       completedAt: now,
-      completedByDevice: this.config.deviceName
+      completedByDevice: this.config.deviceName,
+      dueDate: removed.dueDate
     }
 
     this.archivePayload.archivedLogs.unshift(archivedLog)
@@ -425,7 +439,8 @@ export class LocalStore {
     targetNote.todos.push({
       id: log.id,
       text: log.text,
-      createdAt: log.createdAt
+      createdAt: log.createdAt,
+      dueDate: log.dueDate
     })
     targetNote.updatedAt = Date.now()
     targetNote.lastDeviceName = this.config.deviceName

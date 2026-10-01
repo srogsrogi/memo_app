@@ -17,10 +17,14 @@ const api: ElectronAPI = {
       ipcRenderer.invoke('notes:updateMemo', params),
     updateTodoGroup: (params: { id: string; groupTitle?: string; color?: NoteColor }) =>
       ipcRenderer.invoke('notes:updateTodoGroup', params),
-    addTodoItem: (params: { noteId: string; text: string }) =>
+    addTodoItem: (params: { noteId: string; text: string; dueDate?: string }) =>
       ipcRenderer.invoke('notes:addTodoItem', params),
-    editTodoItem: (params: { noteId: string; itemId: string; text: string }) =>
-      ipcRenderer.invoke('notes:editTodoItem', params),
+    editTodoItem: (params: {
+      noteId: string
+      itemId: string
+      text?: string
+      dueDate?: string | null
+    }) => ipcRenderer.invoke('notes:editTodoItem', params),
     completeTodoItem: (params: { noteId: string; itemId: string }) =>
       ipcRenderer.invoke('notes:completeTodoItem', params),
     deleteTodoItem: (params: { noteId: string; itemId: string }) =>

@@ -232,11 +232,11 @@ export default function StickyWindow({ noteId }: StickyWindowProps): JSX.Element
               onUpdateGroupTitle={(newTitle) => {
                 window.api.notes.updateTodoGroup({ id: note.id, groupTitle: newTitle })
               }}
-              onAddTodo={(text) => {
-                window.api.notes.addTodoItem({ noteId: note.id, text })
+              onAddTodo={(text, dueDate) => {
+                window.api.notes.addTodoItem({ noteId: note.id, text, dueDate })
               }}
-              onEditTodo={(itemId, text) => {
-                window.api.notes.editTodoItem({ noteId: note.id, itemId, text })
+              onEditTodo={(itemId, text, dueDate) => {
+                window.api.notes.editTodoItem({ noteId: note.id, itemId, text, dueDate })
               }}
               onCompleteTodo={(itemId) => {
                 window.api.notes.completeTodoItem({ noteId: note.id, itemId }).then((res) => {
