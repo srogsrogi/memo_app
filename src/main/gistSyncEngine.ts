@@ -1,4 +1,4 @@
-import { powerMonitor } from 'electron'
+import { app, powerMonitor } from 'electron'
 import { GistArchivePayload, Note, SyncStatus } from '../shared/types'
 import { LocalStore } from './localStore'
 import { WindowManager } from './windowManager'
@@ -27,6 +27,8 @@ export class GistSyncEngine {
   private currentStatus: SyncStatus = 'SYNCED'
   private statusMessage: string = ''
   private isSyncInProgress: boolean = false
+  private knownRemoteFiles: Set<string> = new Set()
+  private lastFocusPullAt: number = 0
 
   constructor(store: LocalStore, wm: WindowManager) {
     this.store = store
@@ -34,20 +36,25 @@ export class GistSyncEngine {
   }
 
   public init(): void {
-    // Schedule periodic pull every 60 seconds
+    // Schedule periodic pull every 10 seconds (was 60s)
     this.syncTimer = setInterval(() => {
       this.triggerSync()
-    }, 60000)
+    }, 10000)
 
     // OS sleep resume event
     powerMonitor.on('resume', () => {
       this.triggerSync()
     })
 
+    // Immediate sync on window focus (throttled to 4s)
+    app.on('browser-window-focus', () => {
+      this.triggerThrottledPull()
+    })
+
     // Initial sync
     setTimeout(() => {
       this.triggerSync()
-    }, 3000)
+    }, 1500)
   }
 
   public destroy(): void {
@@ -73,13 +80,22 @@ export class GistSyncEngine {
     })
   }
 
-  public scheduleDebouncedPush(): void {
+  public triggerThrottledPull(): void {
+    const now = Date.now()
+    if (now - this.lastFocusPullAt < 4000) {
+      return
+    }
+    this.lastFocusPullAt = now
+    this.triggerSync()
+  }
+
+  public scheduleDebouncedPush(delayMs: number = 1500): void {
     if (this.debouncePushTimer) {
       clearTimeout(this.debouncePushTimer)
     }
     this.debouncePushTimer = setTimeout(() => {
       this.triggerSync()
-    }, 3000)
+    }, delayMs)
   }
 
   public async setupToken(token: string): Promise<{ success: boolean; gistId: string; username: string }> {
@@ -198,7 +214,7 @@ export class GistSyncEngine {
       }
 
       const lastEtag = this.store.getConfig().lastEtag
-      if (lastEtag) {
+      if (lastEtag && this.knownRemoteFiles.size > 0) {
         headers['If-None-Match'] = lastEtag
       }
 
@@ -218,6 +234,9 @@ export class GistSyncEngine {
       if (pullRes.status === 200) {
         const etag = pullRes.headers.get('etag') || undefined
         const data = (await pullRes.json()) as GitHubGistResponse
+
+        // Cache remote file list
+        this.knownRemoteFiles = new Set(Object.keys(data.files || {}))
 
         for (const [filename, fileObj] of Object.entries(data.files || {})) {
           if (!fileObj || !fileObj.content) continue
@@ -273,10 +292,13 @@ export class GistSyncEngine {
         }
       }
 
-      // Check deleted notes
+      // Check deleted notes - ONLY delete if the file actually exists in remote Gist!
       for (const deletedId of Object.keys(this.store.getArchivePayload().deletedNoteIds || {})) {
-        filesPatch[`note-${deletedId}.json`] = null
-        hasChangesToPush = true
+        const fileKey = `note-${deletedId}.json`
+        if (this.knownRemoteFiles.has(fileKey)) {
+          filesPatch[fileKey] = null
+          hasChangesToPush = true
+        }
       }
 
       // Check dirty archive
@@ -303,16 +325,26 @@ export class GistSyncEngine {
           })
         })
 
-        if (patchRes.ok) {
-          await patchRes.json()
-          const newEtag = patchRes.headers.get('etag') || undefined
-
-          for (const note of this.store.getRawNotes()) {
-            this.store.markNoteSynced(note.id, note.updatedAt)
-          }
-          this.store.markArchiveSynced()
-          this.store.setLastSynced(Date.now(), newEtag)
+        if (!patchRes.ok) {
+          const errText = await patchRes.text()
+          console.error('[GistSync] PATCH failed:', patchRes.status, errText)
+          this.setStatus('ERROR', `동기화 업로드 실패 (${patchRes.status})`)
+          this.isSyncInProgress = false
+          return { status: 'ERROR', syncedCount: 0 }
         }
+
+        const patchedData = (await patchRes.json()) as GitHubGistResponse
+        const newEtag = patchRes.headers.get('etag') || undefined
+
+        if (patchedData.files) {
+          this.knownRemoteFiles = new Set(Object.keys(patchedData.files))
+        }
+
+        for (const note of this.store.getRawNotes()) {
+          this.store.markNoteSynced(note.id, note.updatedAt)
+        }
+        this.store.markArchiveSynced()
+        this.store.setLastSynced(Date.now(), newEtag)
       }
 
       this.setStatus('SYNCED', '동기화 완료')

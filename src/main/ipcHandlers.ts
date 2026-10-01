@@ -21,7 +21,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
       const note = store.createSticky(params)
       wm.openSticky(note.id)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return note
     }
   )
@@ -31,7 +31,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     async (_event, params: { id: string; content?: string; color?: NoteColor }) => {
       const updated = store.updateMemo(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(1500)
       return updated
     }
   )
@@ -41,7 +41,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     async (_event, params: { id: string; groupTitle?: string; color?: NoteColor }) => {
       const updated = store.updateTodoGroup(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return updated
     }
   )
@@ -51,7 +51,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     async (_event, params: { noteId: string; text: string; dueDate?: string }) => {
       const updated = store.addTodoItem(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return updated
     }
   )
@@ -64,7 +64,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     ) => {
       const updated = store.editTodoItem(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return updated
     }
   )
@@ -74,7 +74,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     async (_event, params: { noteId: string; itemId: string }) => {
       const result = store.completeTodoItem(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return result
     }
   )
@@ -84,7 +84,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     async (_event, params: { noteId: string; itemId: string }) => {
       const updated = store.deleteTodoItem(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return updated
     }
   )
@@ -97,7 +97,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     ) => {
       const updated = store.moveTodoItem(params)
       wm.broadcastNotesChanged()
-      sync.scheduleDebouncedPush()
+      sync.scheduleDebouncedPush(300)
       return updated
     }
   )
@@ -106,7 +106,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
     wm.closeStickyWindow(params.id)
     store.deleteSticky(params.id)
     wm.broadcastNotesChanged()
-    sync.scheduleDebouncedPush()
+    sync.scheduleDebouncedPush(300)
     return { success: true }
   })
 
@@ -121,7 +121,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
       wm.openSticky(targetNoteId)
     }
     wm.broadcastNotesChanged()
-    sync.scheduleDebouncedPush()
+    sync.scheduleDebouncedPush(300)
     return {
       stickies: store.getAllStickies(),
       archivedLogs: store.getAllArchivedLogs()
@@ -131,7 +131,7 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
   ipcMain.handle('archive:deleteLog', async (_event, params: { logId: string }) => {
     store.deleteArchivedLog(params.logId)
     wm.broadcastNotesChanged()
-    sync.scheduleDebouncedPush()
+    sync.scheduleDebouncedPush(300)
     return { success: true }
   })
 
