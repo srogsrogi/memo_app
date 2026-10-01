@@ -576,4 +576,67 @@ export class LocalStore {
 
     return { createdNoteIds, deletedNoteIds }
   }
+
+  public exportBackupPayload(): {
+    version: number
+    exportedAt: number
+    deviceName: string
+    notes: Note[]
+    archivedLogs: ArchivedTodoLog[]
+  } {
+    return {
+      version: 1,
+      exportedAt: Date.now(),
+      deviceName: this.getDeviceName(),
+      notes: this.notes,
+      archivedLogs: this.archivePayload.archivedLogs
+    }
+  }
+
+  public importBackupPayload(payload: {
+    notes?: Note[]
+    archivedLogs?: ArchivedTodoLog[]
+  }): { importedNotesCount: number; importedLogsCount: number; newNoteIds: string[] } {
+    let importedNotesCount = 0
+    let importedLogsCount = 0
+    const newNoteIds: string[] = []
+
+    if (Array.isArray(payload.notes)) {
+      for (const n of payload.notes) {
+        if (!n || !n.id || !n.type) continue
+        const existingIdx = this.notes.findIndex((item) => item.id === n.id)
+        if (existingIdx >= 0) {
+          if (n.updatedAt > this.notes[existingIdx].updatedAt) {
+            this.notes[existingIdx] = n
+            importedNotesCount++
+          }
+        } else {
+          if (this.notes.length < MAX_STICKIES) {
+            this.notes.push(n)
+            this.getWindowState(n.id)
+            newNoteIds.push(n.id)
+            importedNotesCount++
+          }
+        }
+      }
+    }
+
+    if (Array.isArray(payload.archivedLogs)) {
+      for (const log of payload.archivedLogs) {
+        if (!log || !log.id) continue
+        const exists = this.archivePayload.archivedLogs.some((l) => l.id === log.id)
+        if (!exists) {
+          this.archivePayload.archivedLogs.push(log)
+          importedLogsCount++
+        }
+      }
+      this.archivePayload.archivedLogs.sort((a, b) => b.completedAt - a.completedAt)
+    }
+
+    if (importedNotesCount > 0) this.saveNotes()
+    if (importedLogsCount > 0) this.saveArchive()
+    this.saveConfig()
+
+    return { importedNotesCount, importedLogsCount, newNoteIds }
+  }
 }

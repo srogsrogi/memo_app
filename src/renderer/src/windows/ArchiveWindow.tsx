@@ -12,7 +12,9 @@ import {
   Undo2,
   X,
   AlertCircle,
-  Clock
+  Clock,
+  Download,
+  Upload
 } from 'lucide-react'
 import {
   ArchivedTodoLog,
@@ -144,6 +146,45 @@ export default function ArchiveWindow(): JSX.Element {
 
   const openTokenPage = (): void => {
     window.open('https://github.com/settings/tokens/new?scopes=gist&description=StickyNotesApp', '_blank')
+  }
+
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+
+  const handleExportBackup = async (): Promise<void> => {
+    setIsExporting(true)
+    try {
+      const res = await window.api.backup.exportData()
+      if (res.success) {
+        setActionFeedback({
+          type: 'success',
+          message: `백업 파일 저장 완료 (${res.count}개 항목 내보냄)`
+        })
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '백업 파일 저장 중 오류 발생'
+      setActionFeedback({ type: 'error', message: msg })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleImportBackup = async (): Promise<void> => {
+    setIsImporting(true)
+    try {
+      const res = await window.api.backup.importData()
+      if (res.success) {
+        setActionFeedback({
+          type: 'success',
+          message: `백업 복원 완료 (스티커 ${res.importedNotesCount}건, 완료 기록 ${res.importedLogsCount}건)`
+        })
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '백업 파일 복원 중 오류 발생'
+      setActionFeedback({ type: 'error', message: msg })
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   // Filtered & grouped logs
@@ -522,6 +563,39 @@ export default function ArchiveWindow(): JSX.Element {
                   </button>
                 </div>
               </form>
+            </div>
+
+            {/* Backup & Restore Card */}
+            <div className="rounded-lg border border-stone-200 bg-white p-3.5 shadow-xs">
+              <span className="font-bold text-stone-800 flex items-center gap-1.5 mb-1.5">
+                <Download className="h-3.5 w-3.5 text-stone-600" />
+                로컬 데이터 백업 및 복원
+              </span>
+              <p className="text-[11px] text-stone-500 mb-3 leading-relaxed">
+                현재 활성화된 모든 스티커와 완료 기록을 하나의 JSON 파일로 안전하게 백업하거나 불러옵니다.
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportBackup}
+                  disabled={isExporting}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-stone-300 bg-stone-50 hover:bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5 text-stone-500" />
+                  {isExporting ? '저장 중...' : '백업 파일 내보내기'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleImportBackup}
+                  disabled={isImporting}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-stone-300 bg-stone-50 hover:bg-stone-100 px-2.5 py-1.5 text-xs font-medium text-stone-700 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  <Upload className="h-3.5 w-3.5 text-stone-500" />
+                  {isImporting ? '불러오는 중...' : '백업 파일 불러오기'}
+                </button>
+              </div>
             </div>
 
             {/* Features Guide Card */}

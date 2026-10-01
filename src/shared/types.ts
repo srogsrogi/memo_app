@@ -123,6 +123,15 @@ export interface ElectronAPI {
     triggerNow: () => Promise<{ status: SyncStatus; syncedCount: number }>
     onStatusChanged: (callback: (payload: SyncStatusChangedPayload) => void) => () => void
   }
+  backup: {
+    exportData: () => Promise<{ success: boolean; canceled?: boolean; filePath?: string; count?: number }>
+    importData: () => Promise<{
+      success: boolean
+      canceled?: boolean
+      importedNotesCount?: number
+      importedLogsCount?: number
+    }>
+  }
 }
 
 export const MAX_STICKIES = 10

@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron'
+import { dialog, ipcMain } from 'electron'
+import * as fs from 'fs'
 import { NoteColor, NoteType, SyncConfigInfo } from '../shared/types'
 import { GistSyncEngine } from './gistSyncEngine'
 import { LocalStore } from './localStore'
@@ -157,5 +158,65 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
 
   ipcMain.handle('sync:triggerNow', async () => {
     return sync.triggerSync()
+  })
+
+  // --- Backup & Restore Management ---
+  ipcMain.handle('backup:exportData', async () => {
+    const backupData = store.exportBackupPayload()
+    const now = new Date()
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
+      now.getDate()
+    ).padStart(2, '0')}`
+    const defaultFilename = `sticky-notes-backup-${dateStr}.json`
+
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: '메모 백업 파일 저장',
+      defaultPath: defaultFilename,
+      filters: [{ name: 'JSON 백업 파일', extensions: ['json'] }]
+    })
+
+    if (canceled || !filePath) {
+      return { success: false, canceled: true }
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2), 'utf-8')
+    return {
+      success: true,
+      filePath,
+      count: backupData.notes.length + backupData.archivedLogs.length
+    }
+  })
+
+  ipcMain.handle('backup:importData', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: '메모 백업 파일 불러오기',
+      filters: [{ name: 'JSON 백업 파일', extensions: ['json'] }],
+      properties: ['openFile']
+    })
+
+    if (canceled || filePaths.length === 0) {
+      return { success: false, canceled: true }
+    }
+
+    try {
+      const raw = fs.readFileSync(filePaths[0], 'utf-8')
+      const payload = JSON.parse(raw)
+      const res = store.importBackupPayload(payload)
+
+      for (const newId of res.newNoteIds) {
+        wm.openSticky(newId)
+      }
+      wm.broadcastNotesChanged()
+      sync.scheduleDebouncedPush()
+
+      return {
+        success: true,
+        importedNotesCount: res.importedNotesCount,
+        importedLogsCount: res.importedLogsCount
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '파일 형식이 올바르지 않습니다.'
+      throw new Error(`백업 복원 실패: ${msg}`)
+    }
   })
 }

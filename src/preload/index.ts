@@ -62,6 +62,10 @@ const api: ElectronAPI = {
         ipcRenderer.removeListener('sync:statusChanged', listener)
       }
     }
+  },
+  backup: {
+    exportData: () => ipcRenderer.invoke('backup:exportData'),
+    importData: () => ipcRenderer.invoke('backup:importData')
   }
 }
 
