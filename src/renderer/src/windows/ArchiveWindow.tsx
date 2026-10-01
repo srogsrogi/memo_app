@@ -36,6 +36,8 @@ export default function ArchiveWindow(): JSX.Element {
   const [isSyncing, setIsSyncing] = useState(false)
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  const [autoLaunchEnabled, setAutoLaunchEnabled] = useState(false)
+
   // Load initial data
   useEffect(() => {
     window.api.archive.getAll().then((data) => {
@@ -44,6 +46,15 @@ export default function ArchiveWindow(): JSX.Element {
     window.api.sync.getConfig().then((cfg) => {
       setSyncConfig(cfg)
     })
+    window.api.system.getAutoLaunch().then((res) => {
+      setAutoLaunchEnabled(res.enabled)
+    })
+
+    const handleOnline = (): void => {
+      window.api.sync.triggerNow()
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
   }, [])
 
   // Listen for real-time notes/archive updates
@@ -185,6 +196,16 @@ export default function ArchiveWindow(): JSX.Element {
     } finally {
       setIsImporting(false)
     }
+  }
+
+  const handleToggleAutoLaunch = async (): Promise<void> => {
+    const next = !autoLaunchEnabled
+    const res = await window.api.system.setAutoLaunch({ enabled: next })
+    setAutoLaunchEnabled(res.enabled)
+    setActionFeedback({
+      type: 'success',
+      message: res.enabled ? '부팅 시 자동 실행이 활성화되었습니다.' : '부팅 시 자동 실행이 해제되었습니다.'
+    })
   }
 
   // Filtered & grouped logs
@@ -594,6 +615,31 @@ export default function ArchiveWindow(): JSX.Element {
                 >
                   <Upload className="h-3.5 w-3.5 text-stone-500" />
                   {isImporting ? '불러오는 중...' : '백업 파일 불러오기'}
+                </button>
+              </div>
+            </div>
+
+            {/* System Preferences Card */}
+            <div className="rounded-lg border border-stone-200 bg-white p-3.5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-stone-800 text-xs">Windows 시작 시 자동 실행</span>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    컴퓨터 부팅 시 바탕화면에 스티커 메모를 자동으로 띄웁니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleAutoLaunch}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    autoLaunchEnabled ? 'bg-amber-500' : 'bg-stone-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      autoLaunchEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
                 </button>
               </div>
             </div>

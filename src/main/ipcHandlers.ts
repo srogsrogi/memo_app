@@ -1,4 +1,4 @@
-import { dialog, ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
 import * as fs from 'fs'
 import { NoteColor, NoteType, SyncConfigInfo } from '../shared/types'
 import { GistSyncEngine } from './gistSyncEngine'
@@ -218,5 +218,20 @@ export function registerIpcHandlers(store: LocalStore, wm: WindowManager, sync: 
       const msg = err instanceof Error ? err.message : '파일 형식이 올바르지 않습니다.'
       throw new Error(`백업 복원 실패: ${msg}`)
     }
+  })
+
+  // --- System Integration ---
+  ipcMain.handle('system:getAutoLaunch', async () => {
+    const settings = app.getLoginItemSettings()
+    return { enabled: settings.openAtLogin }
+  })
+
+  ipcMain.handle('system:setAutoLaunch', async (_event, params: { enabled: boolean }) => {
+    app.setLoginItemSettings({
+      openAtLogin: params.enabled,
+      openAsHidden: false
+    })
+    const settings = app.getLoginItemSettings()
+    return { enabled: settings.openAtLogin }
   })
 }

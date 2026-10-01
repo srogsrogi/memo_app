@@ -66,6 +66,10 @@ const api: ElectronAPI = {
   backup: {
     exportData: () => ipcRenderer.invoke('backup:exportData'),
     importData: () => ipcRenderer.invoke('backup:importData')
+  },
+  system: {
+    getAutoLaunch: () => ipcRenderer.invoke('system:getAutoLaunch'),
+    setAutoLaunch: (params: { enabled: boolean }) => ipcRenderer.invoke('system:setAutoLaunch', params)
   }
 }
 

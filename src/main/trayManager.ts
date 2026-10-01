@@ -131,6 +131,17 @@ export class TrayManager {
           this.sync.triggerSync()
         }
       },
+      {
+        label: '🚀 Windows 시작 시 자동 실행',
+        type: 'checkbox',
+        checked: app.getLoginItemSettings().openAtLogin,
+        click: (menuItem) => {
+          app.setLoginItemSettings({
+            openAtLogin: menuItem.checked,
+            openAsHidden: false
+          })
+        }
+      },
       { type: 'separator' },
       {
         label: '✖ 앱 완전 종료',

@@ -132,6 +132,10 @@ export interface ElectronAPI {
       importedLogsCount?: number
     }>
   }
+  system: {
+    getAutoLaunch: () => Promise<{ enabled: boolean }>
+    setAutoLaunch: (params: { enabled: boolean }) => Promise<{ enabled: boolean }>
+  }
 }
 
 export const MAX_STICKIES = 10
