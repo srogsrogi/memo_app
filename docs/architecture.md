@@ -17,8 +17,8 @@ flowchart TB
         direction TB
         subgraph Renderers["Renderer 프로세스 (React UI - 창마다 1개씩 독립 실행)"]
             Sticky1["일반 메모 스티커 창 (?window=sticky&id=A)<br/>Tiptap 마크다운 에디터 (썼다 지웠다)"]
-            Sticky2["할 일 스티커 창 (?window=sticky&id=B)<br/>전용 투두 리스트 ([✓ 완료→아카이브] / [× 삭제])"]
-            ArchiveWin["완료 아카이브 & 설정 미니 창 (?window=archive)<br/>트레이 클릭 시 토글 (400x520px)"]
+            Sticky2["할 일 스티커 창 (?window=sticky&id=B)<br/>전용 투두 리스트 ([✓ 완료] / [× 삭제] / [▲/▼ 순서] / [📅 만료일])"]
+            ArchiveWin["완료 아카이브 & 설정 창 (?window=archive)<br/>트레이/메뉴바/Dock 클릭 시 토글 (420x540px)<br/>- 📑 활성 스티커 검색 & 포커스 네비게이터<br/>- 🗄️ 완료 보관함 타임라인 & 복원<br/>- ☁️ Gist 동기화 / 로컬 백업 / 부팅 자동실행"]
         end
 
         subgraph Main["Electron Main 프로세스 (내부 API 서버 & OS 제어기)"]
